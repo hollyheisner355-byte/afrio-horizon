@@ -76,7 +76,7 @@ const AdminDashboard = () => {
       supabase.from("packages").select("*, countries(name)").order("created_at", { ascending: false }),
       supabase.from("countries").select("*").order("name"),
       supabase.from("agents").select("*").order("region"),
-      supabase.from("bookings").select("*").order("created_at", { ascending: false }),
+      supabase.from("bookings").select("*, packages(title), agents(name, region)").order("created_at", { ascending: false }),
       supabase.from("blogs").select("*").order("created_at", { ascending: false }),
       supabase.from("testimonials").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
@@ -414,20 +414,27 @@ const AdminDashboard = () => {
                   <thead className="bg-muted"><tr>
                     <th className="text-left p-4 font-medium text-muted-foreground">ID</th>
                     <th className="text-left p-4 font-medium text-muted-foreground">Package</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground">Agent</th>
                     <th className="text-left p-4 font-medium text-muted-foreground">Guests</th>
                     <th className="text-left p-4 font-medium text-muted-foreground">Travel Date</th>
                     <th className="text-left p-4 font-medium text-muted-foreground">Total</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground">Deposit (50%)</th>
                     <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
                     <th className="text-right p-4 font-medium text-muted-foreground">Actions</th>
                   </tr></thead>
                   <tbody>
-                    {bookings.map((b) => (
+                    {bookings.map((b) => {
+                      const deposit50 = Math.ceil((Number(b.total_price) || 0) * 0.5);
+                      const depositPaid = Number(b.deposit_paid) || 0;
+                      return (
                       <tr key={b.id} className="border-t border-border">
                         <td className="p-4 font-mono text-xs text-foreground">{b.id.slice(0, 8)}</td>
                         <td className="p-4 text-muted-foreground">{b.packages?.title || "—"}</td>
+                        <td className="p-4 text-muted-foreground">{b.agents?.name || "Unassigned"}<br/><span className="text-xs">{b.agents?.region || ""}</span></td>
                         <td className="p-4 text-muted-foreground">{b.guests}</td>
                         <td className="p-4 text-muted-foreground">{b.travel_date || "—"}</td>
                         <td className="p-4 text-foreground font-medium">${Number(b.total_price || 0).toLocaleString()}</td>
+                        <td className="p-4"><span className={`font-medium ${depositPaid >= deposit50 ? "text-safari-green" : "text-primary"}`}>${deposit50.toLocaleString()}</span>{depositPaid > 0 && <span className="text-xs text-safari-green block">${depositPaid.toLocaleString()} paid</span>}</td>
                         <td className="p-4"><span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${b.status === "confirmed" ? "bg-safari-green/10 text-safari-green" : b.status === "cancelled" ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>{b.status}</span></td>
                         <td className="p-4 text-right">
                           <div className="flex justify-end gap-1">
@@ -439,8 +446,8 @@ const AdminDashboard = () => {
                           </div>
                         </td>
                       </tr>
-                    ))}
-                    {bookings.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No bookings yet</td></tr>}
+                    )})}
+                    {bookings.length === 0 && <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">No bookings yet</td></tr>}
                   </tbody>
                 </table>
               </div>
