@@ -8,7 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Clock, Users, Star, MapPin, Check, ArrowLeft, Phone, Mail } from "lucide-react";
+import { Clock, Users, Star, MapPin, Check, ArrowLeft, Phone, Mail, DollarSign, UserCheck } from "lucide-react";
+
+const REGION_OPTIONS = [
+  { label: "Australia & New Zealand", keywords: ["australia", "new zealand", "oceania"] },
+  { label: "United Kingdom & Europe", keywords: ["uk", "united kingdom", "europe", "england", "france", "germany", "ireland", "spain", "italy", "netherlands", "scotland", "wales"] },
+  { label: "United States & Canada", keywords: ["usa", "united states", "america", "canada", "north america"] },
+];
 
 const PackageDetail = () => {
   const { id } = useParams();
@@ -18,8 +24,9 @@ const PackageDetail = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [showBooking, setShowBooking] = useState(false);
-  const [bookingForm, setBookingForm] = useState({ travel_date: "", guests: 1, notes: "" });
+  const [bookingForm, setBookingForm] = useState({ travel_date: "", guests: 1, notes: "", user_region: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [assignedAgent, setAssignedAgent] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,22 +44,35 @@ const PackageDetail = () => {
     fetchData();
   }, [id]);
 
+  // Auto-assign agent when region changes
+  useEffect(() => {
+    if (!bookingForm.user_region) { setAssignedAgent(null); return; }
+    const matched = agents.find(a => a.region === bookingForm.user_region);
+    setAssignedAgent(matched || null);
+  }, [bookingForm.user_region, agents]);
+
+  const totalPrice = (pkg?.price || 0) * bookingForm.guests;
+  const depositAmount = Math.ceil(totalPrice * 0.5);
+
   const handleBook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) { navigate("/auth"); return; }
+    if (!bookingForm.user_region) { toast.error("Please select your region"); return; }
     setSubmitting(true);
     const { error } = await supabase.from("bookings").insert({
       user_id: user.id,
       package_id: id,
+      agent_id: assignedAgent?.id || null,
       travel_date: bookingForm.travel_date || null,
       guests: Number(bookingForm.guests),
       notes: bookingForm.notes || null,
-      total_price: (pkg?.price || 0) * Number(bookingForm.guests),
+      total_price: totalPrice,
+      deposit_paid: 0,
       status: "pending",
     });
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Booking submitted! An agent will contact you for deposit payment.");
+    toast.success(`Booking submitted! ${assignedAgent?.name || 'An agent'} will contact you to arrange your ${depositAmount.toLocaleString()} USD deposit.`);
     setShowBooking(false);
     navigate("/dashboard");
   };
@@ -110,19 +130,24 @@ const PackageDetail = () => {
                 </div>
               )}
 
-              {/* Agents */}
+              {/* Agents by region */}
               {agents.length > 0 && (
                 <div>
-                  <h3 className="font-display text-xl font-bold text-foreground mb-4">Contact Our Agents</h3>
-                  <p className="text-muted-foreground mb-6">Reach out to an agent in your region to finalize your booking and arrange deposit payment.</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <h3 className="font-display text-xl font-bold text-foreground mb-4">Your Regional Agents</h3>
+                  <p className="text-muted-foreground mb-6">Contact the agent in your region. They'll help you book, arrange travel, and handle your 50% deposit payment.</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {agents.map(a => (
-                      <div key={a.id} className="bg-card border border-border rounded-xl p-5">
-                        <h4 className="font-bold text-foreground">{a.name}</h4>
-                        <p className="text-primary text-sm font-medium mb-2">{a.region}</p>
-                        {a.city && <p className="text-muted-foreground text-sm flex items-center gap-1"><MapPin size={12} /> {a.city}{a.country ? `, ${a.country}` : ""}</p>}
-                        {a.phone && <p className="text-muted-foreground text-sm flex items-center gap-1 mt-1"><Phone size={12} /> {a.phone}</p>}
-                        {a.email && <p className="text-muted-foreground text-sm flex items-center gap-1 mt-1"><Mail size={12} /> {a.email}</p>}
+                      <div key={a.id} className="bg-card border border-border rounded-xl p-5 hover:border-primary/30 transition-colors">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><UserCheck className="text-primary" size={16} /></div>
+                          <div>
+                            <h4 className="font-bold text-foreground text-sm">{a.name}</h4>
+                            <p className="text-primary text-xs font-medium">{a.region}</p>
+                          </div>
+                        </div>
+                        {a.city && <p className="text-muted-foreground text-xs flex items-center gap-1 mt-2"><MapPin size={11} /> {a.city}{a.country ? `, ${a.country}` : ""}</p>}
+                        {a.phone && <p className="text-muted-foreground text-xs flex items-center gap-1 mt-1"><Phone size={11} /> {a.phone}</p>}
+                        {a.email && <p className="text-muted-foreground text-xs flex items-center gap-1 mt-1"><Mail size={11} /> {a.email}</p>}
                       </div>
                     ))}
                   </div>
@@ -133,9 +158,13 @@ const PackageDetail = () => {
             {/* Booking Sidebar */}
             <div>
               <div className="bg-card border border-border rounded-2xl p-6 sticky top-28">
-                <div className="mb-6">
+                <div className="mb-4">
                   <span className="text-3xl font-bold text-foreground">${Number(pkg.price).toLocaleString()}</span>
                   <span className="text-muted-foreground"> /person</span>
+                </div>
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-6">
+                  <p className="text-xs text-primary font-medium flex items-center gap-1"><DollarSign size={14} /> 50% deposit required to confirm</p>
+                  <p className="text-xs text-muted-foreground mt-1">Your assigned agent will arrange the deposit payment</p>
                 </div>
                 {!showBooking ? (
                   <Button onClick={() => setShowBooking(true)} className="w-full rounded-full py-5 text-base">
@@ -143,16 +172,51 @@ const PackageDetail = () => {
                   </Button>
                 ) : (
                   <form onSubmit={handleBook} className="space-y-4">
+                    {/* Region selector */}
+                    <div>
+                      <Label>Where are you from?</Label>
+                      <select
+                        value={bookingForm.user_region}
+                        onChange={e => setBookingForm({...bookingForm, user_region: e.target.value})}
+                        className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        required
+                      >
+                        <option value="">Select your region</option>
+                        {REGION_OPTIONS.map(r => <option key={r.label} value={r.label}>{r.label}</option>)}
+                      </select>
+                    </div>
+
+                    {/* Show assigned agent */}
+                    {assignedAgent && (
+                      <div className="bg-accent/30 border border-accent/50 rounded-lg p-3">
+                        <p className="text-xs font-medium text-foreground flex items-center gap-1"><UserCheck size={14} className="text-primary" /> Your assigned agent</p>
+                        <p className="text-sm font-bold text-foreground mt-1">{assignedAgent.name}</p>
+                        <p className="text-xs text-muted-foreground">{assignedAgent.city}{assignedAgent.country ? `, ${assignedAgent.country}` : ""}</p>
+                        {assignedAgent.phone && <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><Phone size={10} /> {assignedAgent.phone}</p>}
+                        {assignedAgent.email && <p className="text-xs text-muted-foreground flex items-center gap-1"><Mail size={10} /> {assignedAgent.email}</p>}
+                      </div>
+                    )}
+
                     <div><Label>Travel Date</Label><Input type="date" value={bookingForm.travel_date} onChange={e => setBookingForm({...bookingForm, travel_date: e.target.value})} className="mt-1" /></div>
                     <div><Label>Guests</Label><Input type="number" min="1" value={bookingForm.guests} onChange={e => setBookingForm({...bookingForm, guests: Number(e.target.value)})} className="mt-1" /></div>
                     <div><Label>Notes</Label><Textarea value={bookingForm.notes} onChange={e => setBookingForm({...bookingForm, notes: e.target.value})} placeholder="Any special requests..." rows={3} className="mt-1" /></div>
-                    <div className="bg-muted rounded-lg p-4">
-                      <div className="flex justify-between text-sm"><span className="text-muted-foreground">Price × {bookingForm.guests}</span><span className="font-bold text-foreground">${(Number(pkg.price) * bookingForm.guests).toLocaleString()}</span></div>
+                    
+                    {/* Price breakdown */}
+                    <div className="bg-muted rounded-lg p-4 space-y-2">
+                      <div className="flex justify-between text-sm"><span className="text-muted-foreground">Price × {bookingForm.guests}</span><span className="font-medium text-foreground">${totalPrice.toLocaleString()}</span></div>
+                      <div className="border-t border-border pt-2 flex justify-between text-sm">
+                        <span className="text-primary font-medium">50% Deposit Due</span>
+                        <span className="font-bold text-primary">${depositAmount.toLocaleString()}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Remaining balance due before departure</p>
                     </div>
+
                     <Button type="submit" disabled={submitting} className="w-full rounded-full py-5">
                       {submitting ? "Submitting..." : "Submit Booking Request"}
                     </Button>
-                    <p className="text-xs text-muted-foreground text-center">An agent will contact you to arrange deposit payment</p>
+                    <p className="text-xs text-muted-foreground text-center">
+                      {assignedAgent ? `${assignedAgent.name} will contact you to arrange your $${depositAmount.toLocaleString()} deposit` : "An agent will contact you to arrange deposit payment"}
+                    </p>
                   </form>
                 )}
               </div>
