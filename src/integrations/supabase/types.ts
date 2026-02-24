@@ -61,6 +61,87 @@ export type Database = {
           },
         ]
       }
+      affiliate_referrals: {
+        Row: {
+          affiliate_id: string
+          booking_id: string | null
+          commission_amount: number
+          created_at: string
+          id: string
+          referred_user_id: string | null
+          status: string
+        }
+        Insert: {
+          affiliate_id: string
+          booking_id?: string | null
+          commission_amount?: number
+          created_at?: string
+          id?: string
+          referred_user_id?: string | null
+          status?: string
+        }
+        Update: {
+          affiliate_id?: string
+          booking_id?: string | null
+          commission_amount?: number
+          created_at?: string
+          id?: string
+          referred_user_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_referrals_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_referrals_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliates: {
+        Row: {
+          commission_rate: number
+          created_at: string
+          id: string
+          is_active: boolean
+          referral_code: string
+          total_earnings: number
+          total_referrals: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          referral_code: string
+          total_earnings?: number
+          total_referrals?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          referral_code?: string
+          total_earnings?: number
+          total_referrals?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       agents: {
         Row: {
           avatar_url: string | null
@@ -328,6 +409,7 @@ export type Database = {
         Row: {
           contact_email: string | null
           contact_phone: string | null
+          default_affiliate_commission: number | null
           id: string
           logo_url: string | null
           site_name: string
@@ -337,6 +419,7 @@ export type Database = {
         Insert: {
           contact_email?: string | null
           contact_phone?: string | null
+          default_affiliate_commission?: number | null
           id?: string
           logo_url?: string | null
           site_name?: string
@@ -346,6 +429,7 @@ export type Database = {
         Update: {
           contact_email?: string | null
           contact_phone?: string | null
+          default_affiliate_commission?: number | null
           id?: string
           logo_url?: string | null
           site_name?: string

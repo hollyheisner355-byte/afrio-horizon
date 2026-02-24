@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { LogOut, Users, Package, MapPin, Home, MessageSquare, Globe, Settings, BookOpen, Star, UserPlus, BarChart3, Menu, X, Pencil, Trash2, Plus, Bed } from "lucide-react";
+import { LogOut, Users, Package, MapPin, Home, MessageSquare, Globe, Settings, BookOpen, Star, UserPlus, BarChart3, Menu, X, Pencil, Trash2, Plus, Bed, Share2, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import AdminPackageForm from "@/components/admin/AdminPackageForm";
 import AdminCountryForm from "@/components/admin/AdminCountryForm";
@@ -13,7 +13,7 @@ import AdminBlogForm from "@/components/admin/AdminBlogForm";
 import AdminTestimonialForm from "@/components/admin/AdminTestimonialForm";
 import AdminAccommodationForm from "@/components/admin/AdminAccommodationForm";
 
-type Tab = "overview" | "packages" | "countries" | "accommodations" | "agents" | "users" | "bookings" | "blogs" | "testimonials" | "settings";
+type Tab = "overview" | "packages" | "countries" | "accommodations" | "agents" | "users" | "bookings" | "blogs" | "testimonials" | "affiliates" | "settings";
 
 const AdminDashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -30,6 +30,8 @@ const AdminDashboard = () => {
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [accommodations, setAccommodations] = useState<any[]>([]);
+  const [affiliates, setAffiliates] = useState<any[]>([]);
+  const [affiliateReferrals, setAffiliateReferrals] = useState<any[]>([]);
   const [siteSettings, setSiteSettings] = useState<any>(null);
 
   // Form modals
@@ -72,7 +74,7 @@ const AdminDashboard = () => {
   }, [navigate]);
 
   const fetchAllData = async () => {
-    const [pkgRes, countryRes, agentRes, bookingRes, blogRes, testRes, profileRes, settingsRes, accRes] = await Promise.all([
+    const [pkgRes, countryRes, agentRes, bookingRes, blogRes, testRes, profileRes, settingsRes, accRes, affRes, affRefRes] = await Promise.all([
       supabase.from("packages").select("*, countries(name)").order("created_at", { ascending: false }),
       supabase.from("countries").select("*").order("name"),
       supabase.from("agents").select("*").order("region"),
@@ -82,6 +84,8 @@ const AdminDashboard = () => {
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("site_settings").select("*").limit(1).maybeSingle(),
       supabase.from("accommodations").select("*, countries(name)").order("created_at", { ascending: false }),
+      supabase.from("affiliates").select("*").order("created_at", { ascending: false }),
+      supabase.from("affiliate_referrals").select("*").order("created_at", { ascending: false }),
     ]);
     setPackages(pkgRes.data || []);
     setCountries(countryRes.data || []);
@@ -93,6 +97,8 @@ const AdminDashboard = () => {
     setSiteSettings(settingsRes.data);
     setSettingsForm(settingsRes.data ? { ...settingsRes.data } : null);
     setAccommodations(accRes.data || []);
+    setAffiliates(affRes.data || []);
+    setAffiliateReferrals(affRefRes.data || []);
   };
 
   const handleDelete = async (table: string, id: string, label: string) => {
@@ -141,6 +147,7 @@ const AdminDashboard = () => {
     { key: "bookings", label: "Bookings", icon: BookOpen },
     { key: "blogs", label: "Blogs", icon: MessageSquare },
     { key: "testimonials", label: "Testimonials", icon: Star },
+    { key: "affiliates", label: "Affiliates", icon: Share2 },
     { key: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -523,6 +530,106 @@ const AdminDashboard = () => {
                         </tr>
                       ))}
                       {testimonials.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No testimonials yet</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* AFFILIATES */}
+          {activeTab === "affiliates" && (
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="bg-card border border-border rounded-xl p-6">
+                  <Share2 className="text-primary mb-3" size={24} />
+                  <p className="text-2xl font-bold text-foreground">{affiliates.length}</p>
+                  <p className="text-sm text-muted-foreground">Total Affiliates</p>
+                </div>
+                <div className="bg-card border border-border rounded-xl p-6">
+                  <DollarSign className="text-safari-green mb-3" size={24} />
+                  <p className="text-2xl font-bold text-foreground">${affiliates.reduce((a: number, b: any) => a + Number(b.total_earnings || 0), 0).toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">Total Payouts</p>
+                </div>
+                <div className="bg-card border border-border rounded-xl p-6">
+                  <Users className="text-accent mb-3" size={24} />
+                  <p className="text-2xl font-bold text-foreground">{affiliateReferrals.length}</p>
+                  <p className="text-sm text-muted-foreground">Total Referrals</p>
+                </div>
+              </div>
+
+              {/* Default commission in settings */}
+              <div className="bg-card border border-border rounded-xl p-6 max-w-sm">
+                <h3 className="font-display text-lg font-bold text-foreground mb-4">Default Commission Rate</h3>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={settingsForm?.default_affiliate_commission ?? 10}
+                    onChange={e => setSettingsForm((prev: any) => ({ ...prev, default_affiliate_commission: Number(e.target.value) }))}
+                    className="w-24"
+                  />
+                  <span className="text-muted-foreground">%</span>
+                  <Button size="sm" className="rounded-full" onClick={handleSaveSettings}>Save</Button>
+                </div>
+              </div>
+
+              {/* Affiliates table */}
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted"><tr>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Code</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Referrals</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Commission %</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Earnings</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
+                      <th className="text-right p-4 font-medium text-muted-foreground">Actions</th>
+                    </tr></thead>
+                    <tbody>
+                      {affiliates.map((a: any) => (
+                        <tr key={a.id} className="border-t border-border">
+                          <td className="p-4 font-mono font-medium text-primary">{a.referral_code}</td>
+                          <td className="p-4 text-foreground">{a.total_referrals}</td>
+                          <td className="p-4">
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              defaultValue={a.commission_rate}
+                              className="w-20 h-8 text-sm"
+                              onBlur={async (e) => {
+                                const val = Number(e.target.value);
+                                if (val !== a.commission_rate) {
+                                  const { error } = await supabase.from("affiliates").update({ commission_rate: val }).eq("id", a.id);
+                                  if (error) toast.error(error.message);
+                                  else { toast.success("Commission updated"); fetchAllData(); }
+                                }
+                              }}
+                            />
+                          </td>
+                          <td className="p-4 text-foreground font-medium">${Number(a.total_earnings).toLocaleString()}</td>
+                          <td className="p-4">
+                            {a.is_active ? (
+                              <span className="text-safari-green text-xs font-medium bg-safari-green/10 px-2 py-0.5 rounded-full">Active</span>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">Inactive</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-right">
+                            <Button size="sm" variant="outline" className="text-xs h-7 rounded-full"
+                              onClick={async () => {
+                                const { error } = await supabase.from("affiliates").update({ is_active: !a.is_active }).eq("id", a.id);
+                                if (error) toast.error(error.message);
+                                else { toast.success(a.is_active ? "Deactivated" : "Activated"); fetchAllData(); }
+                              }}>
+                              {a.is_active ? "Deactivate" : "Activate"}
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                      {affiliates.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No affiliates yet</td></tr>}
                     </tbody>
                   </table>
                 </div>
