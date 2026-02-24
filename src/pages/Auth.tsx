@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [showForgot, setShowForgot] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -46,6 +47,24 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) { toast.error("Please enter your email"); return; }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Password reset link sent! Check your email.");
+      setShowForgot(false);
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left decorative panel */}
@@ -67,78 +86,70 @@ const Auth = () => {
             <ArrowLeft size={16} /> Back to home
           </Link>
 
-          <h1 className="font-display text-3xl font-bold text-foreground mb-2">
-            {isLogin ? "Welcome back" : "Create account"}
-          </h1>
-          <p className="text-muted-foreground mb-8">
-            {isLogin ? "Sign in to access your dashboard" : "Join us to start your African adventure"}
-          </p>
+          {showForgot ? (
+            <>
+              <h1 className="font-display text-3xl font-bold text-foreground mb-2">Reset Password</h1>
+              <p className="text-muted-foreground mb-8">Enter your email and we'll send you a reset link</p>
+              <form onSubmit={handleForgotPassword} className="space-y-5">
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required className="mt-1.5" />
+                </div>
+                <Button type="submit" className="w-full rounded-full py-5" disabled={loading}>
+                  {loading ? "Sending..." : "Send Reset Link"}
+                </Button>
+              </form>
+              <p className="text-center text-sm text-muted-foreground mt-6">
+                <button onClick={() => setShowForgot(false)} className="text-primary font-medium hover:underline">Back to sign in</button>
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="font-display text-3xl font-bold text-foreground mb-2">
+                {isLogin ? "Welcome back" : "Create account"}
+              </h1>
+              <p className="text-muted-foreground mb-8">
+                {isLogin ? "Sign in to access your dashboard" : "Join us to start your African adventure"}
+              </p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {!isLogin && (
-              <div>
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="John Doe"
-                  required={!isLogin}
-                  className="mt-1.5"
-                />
-              </div>
-            )}
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {!isLogin && (
+                  <div>
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input id="fullName" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Doe" required={!isLogin} className="mt-1.5" />
+                  </div>
+                )}
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required className="mt-1.5" />
+                </div>
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative mt-1.5">
+                    <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {isLogin && (
+                    <button type="button" onClick={() => setShowForgot(true)} className="text-xs text-primary hover:underline mt-2 block">
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
+                <Button type="submit" className="w-full rounded-full py-5" disabled={loading}>
+                  {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
+                </Button>
+              </form>
 
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="mt-1.5"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <div className="relative mt-1.5">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  minLength={6}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              <p className="text-center text-sm text-muted-foreground mt-6">
+                {isLogin ? "Don't have an account? " : "Already have an account? "}
+                <button onClick={() => setIsLogin(!isLogin)} className="text-primary font-medium hover:underline">
+                  {isLogin ? "Sign up" : "Sign in"}
                 </button>
-              </div>
-            </div>
-
-            <Button type="submit" className="w-full rounded-full py-5" disabled={loading}>
-              {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
-            </Button>
-          </form>
-
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-primary font-medium hover:underline"
-            >
-              {isLogin ? "Sign up" : "Sign in"}
-            </button>
-          </p>
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

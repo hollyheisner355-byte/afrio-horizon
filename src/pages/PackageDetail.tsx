@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getAffiliateRef, clearAffiliateRef } from "@/lib/affiliate";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -66,7 +67,7 @@ const PackageDetail = () => {
     if (!bookingForm.user_region) { toast.error("Please select your region"); return; }
     if (!bookingForm.email) { toast.error("Please enter your email"); return; }
     setSubmitting(true);
-    const { error } = await supabase.from("bookings").insert({
+    const { data: bookingData, error } = await supabase.from("bookings").insert({
       user_id: user.id,
       package_id: id,
       agent_id: assignedAgent?.id || null,
@@ -76,9 +77,27 @@ const PackageDetail = () => {
       total_price: totalPrice,
       deposit_paid: 0,
       status: "pending",
-    });
+    }).select().single();
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
+
+    // Track affiliate referral if cached
+    const refCode = getAffiliateRef();
+    if (refCode && bookingData) {
+      const { data: aff } = await supabase.from("affiliates").select("id, commission_rate").eq("referral_code", refCode).eq("is_active", true).maybeSingle();
+      if (aff) {
+        const commission = Math.ceil(totalPrice * (Number(aff.commission_rate) / 100));
+        await supabase.from("affiliate_referrals").insert({
+          affiliate_id: aff.id,
+          referred_user_id: user.id,
+          booking_id: bookingData.id,
+          commission_amount: commission,
+          status: "pending",
+        });
+        clearAffiliateRef();
+      }
+    }
+
     toast.success(`Booking submitted! ${assignedAgent?.name || 'An agent'} will contact you to arrange your $${depositAmount.toLocaleString()} deposit.`);
     setShowBooking(false);
     navigate("/dashboard");
