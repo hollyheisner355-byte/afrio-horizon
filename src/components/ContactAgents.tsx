@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Phone, Mail, MapPin } from "lucide-react";
+import { Phone, Mail, MapPin, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -43,7 +43,24 @@ const ContactAgents = () => {
               <p className="text-primary font-medium mb-4">{agent.name}</p>
               {agent.city && <p className="text-muted-foreground text-sm mb-1 flex items-center justify-center gap-2"><MapPin size={14} /> {agent.city}{agent.country ? `, ${agent.country}` : ""}</p>}
               {agent.phone && <p className="text-muted-foreground text-sm mb-1 flex items-center justify-center gap-2"><Phone size={14} /> {agent.phone}</p>}
-              {agent.email && <p className="text-muted-foreground text-sm mb-6 flex items-center justify-center gap-2"><Mail size={14} /> {agent.email}</p>}
+              {agent.email && <p className="text-muted-foreground text-sm mb-4 flex items-center justify-center gap-2"><Mail size={14} /> {agent.email}</p>}
+              <div className="flex flex-wrap gap-2 justify-center mb-4">
+                {agent.email && (
+                  <a href={`mailto:${agent.email}?subject=Safari Booking Inquiry`} className="inline-flex items-center gap-1.5 text-xs bg-primary/10 text-primary hover:bg-primary/20 rounded-full px-3 py-1.5 transition-colors">
+                    <Mail size={12} /> Email
+                  </a>
+                )}
+                {agent.phone && (
+                  <a href={`https://wa.me/${agent.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs bg-secondary/10 text-secondary hover:bg-secondary/20 rounded-full px-3 py-1.5 transition-colors">
+                    <MessageCircle size={12} /> WhatsApp
+                  </a>
+                )}
+                {agent.phone && (
+                  <a href={`tel:${agent.phone}`} className="inline-flex items-center gap-1.5 text-xs bg-accent/10 text-accent hover:bg-accent/20 rounded-full px-3 py-1.5 transition-colors">
+                    <Phone size={12} /> Call
+                  </a>
+                )}
+              </div>
               <Button variant="outline" className="rounded-full w-full" onClick={() => agent.email && window.open(`mailto:${agent.email}`)}>Contact Agent</Button>
             </motion.div>
           ))}
