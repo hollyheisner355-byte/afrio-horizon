@@ -69,7 +69,7 @@ const Hero = () => {
             variant="outline"
             size="lg"
             onClick={() => document.getElementById("about")?.scrollIntoView({ behavior: "smooth" })}
-            className="rounded-full px-10 py-6 text-base font-medium border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+            className="rounded-full px-10 py-6 text-base font-medium border-primary-foreground/50 text-primary-foreground bg-primary-foreground/10 hover:bg-primary-foreground/20 hover:text-primary-foreground"
           >
             Our Story
           </Button>
