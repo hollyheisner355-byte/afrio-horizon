@@ -11,7 +11,6 @@ const navLinks = [
   { label: "Stays", href: "/accommodations" },
   { label: "About", href: "/#about" },
   { label: "Contact", href: "/#contact" },
-  { label: "Affiliate", href: "/affiliate" },
 ];
 
 const Navbar = () => {
