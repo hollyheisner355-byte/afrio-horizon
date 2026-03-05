@@ -12,6 +12,7 @@ import PackageDetail from "./pages/PackageDetail";
 import AccommodationsPage from "./pages/AccommodationsPage";
 import ResetPassword from "./pages/ResetPassword";
 import AffiliateDashboard from "./pages/AffiliateDashboard";
+import BlogPage from "./pages/BlogPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/accommodations" element={<AccommodationsPage />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/affiliate" element={<AffiliateDashboard />} />
+          <Route path="/blog" element={<BlogPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
