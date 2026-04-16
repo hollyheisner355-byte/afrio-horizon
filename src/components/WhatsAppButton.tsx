@@ -3,8 +3,19 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const WhatsAppButton = () => {
   const { settings } = useSiteSettings();
-  const phone = settings.contact_phone?.replace(/[^0-9]/g, "") || "254700123456";
-  const message = encodeURIComponent(`Hi ${settings.site_name}, I'd like to inquire about your safari packages.`);
+  
+  // Extract digits, ensure country code prefix
+  const rawPhone = settings.contact_phone?.replace(/[^0-9+]/g, "") || "";
+  // If starts with +, strip it; if starts with 0, prepend 254 (Kenya default)
+  let phone = rawPhone.replace(/^\+/, "");
+  if (phone.startsWith("0")) {
+    phone = "254" + phone.slice(1);
+  }
+  if (!phone) phone = "254700123456";
+  
+  const message = encodeURIComponent(
+    `Hi ${settings.site_name || "there"}, I'd like to inquire about your safari packages.`
+  );
 
   return (
     <a
