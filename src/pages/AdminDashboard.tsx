@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { LogOut, Users, Package, MapPin, Home, MessageSquare, Globe, Settings, BookOpen, Star, UserPlus, BarChart3, Menu, X, Pencil, Trash2, Plus, Bed, Share2, DollarSign } from "lucide-react";
+import { LogOut, Users, Package, MapPin, Home, MessageSquare, Globe, Settings, BookOpen, Star, UserPlus, BarChart3, Menu, X, Pencil, Trash2, Plus, Bed, Share2, DollarSign, Mail, Send } from "lucide-react";
 import { toast } from "sonner";
 import AdminPackageForm from "@/components/admin/AdminPackageForm";
 import AdminCountryForm from "@/components/admin/AdminCountryForm";
@@ -12,6 +12,7 @@ import AdminAgentForm from "@/components/admin/AdminAgentForm";
 import AdminBlogForm from "@/components/admin/AdminBlogForm";
 import AdminTestimonialForm from "@/components/admin/AdminTestimonialForm";
 import AdminAccommodationForm from "@/components/admin/AdminAccommodationForm";
+import AdminEmailDialog from "@/components/admin/AdminEmailDialog";
 
 type Tab = "overview" | "packages" | "countries" | "accommodations" | "agents" | "users" | "bookings" | "blogs" | "testimonials" | "affiliates" | "settings";
 
