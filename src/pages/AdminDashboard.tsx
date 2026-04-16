@@ -500,6 +500,9 @@ const AdminDashboard = () => {
                               <Button size="sm" variant="outline" className="text-xs h-7 rounded-full text-destructive" onClick={() => updateBookingStatus(b.id, "cancelled")}>Cancel</Button>
                             </>}
                             {b.status === "confirmed" && <Button size="sm" variant="outline" className="text-xs h-7 rounded-full" onClick={() => updateBookingStatus(b.id, "completed")}>Complete</Button>}
+                            <Button size="sm" variant="outline" className="text-xs h-7 rounded-full gap-1" onClick={() => setEmailBooking(b)}>
+                              <Mail size={12} /> Email
+                            </Button>
                           </div>
                         </td>
                       </tr>
