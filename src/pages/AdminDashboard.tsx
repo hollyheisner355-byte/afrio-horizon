@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { LogOut, Users, Package, MapPin, Home, MessageSquare, Globe, Settings, BookOpen, Star, UserPlus, BarChart3, Menu, X, Pencil, Trash2, Plus, Bed, Share2, DollarSign } from "lucide-react";
+import { LogOut, Users, Package, MapPin, Home, MessageSquare, Globe, Settings, BookOpen, Star, UserPlus, BarChart3, Menu, X, Pencil, Trash2, Plus, Bed, Share2, DollarSign, Mail, Send } from "lucide-react";
 import { toast } from "sonner";
 import AdminPackageForm from "@/components/admin/AdminPackageForm";
 import AdminCountryForm from "@/components/admin/AdminCountryForm";
@@ -12,6 +12,7 @@ import AdminAgentForm from "@/components/admin/AdminAgentForm";
 import AdminBlogForm from "@/components/admin/AdminBlogForm";
 import AdminTestimonialForm from "@/components/admin/AdminTestimonialForm";
 import AdminAccommodationForm from "@/components/admin/AdminAccommodationForm";
+import AdminEmailDialog from "@/components/admin/AdminEmailDialog";
 
 type Tab = "overview" | "packages" | "countries" | "accommodations" | "agents" | "users" | "bookings" | "blogs" | "testimonials" | "affiliates" | "settings";
 
@@ -47,6 +48,7 @@ const AdminDashboard = () => {
   const [showTestimonialForm, setShowTestimonialForm] = useState(false);
   const [editingAccommodation, setEditingAccommodation] = useState<any>(undefined);
   const [showAccommodationForm, setShowAccommodationForm] = useState(false);
+  const [emailBooking, setEmailBooking] = useState<any>(null);
 
   // Settings form
   const [settingsForm, setSettingsForm] = useState<any>(null);
@@ -113,6 +115,54 @@ const AdminDashboard = () => {
     const { error } = await supabase.from("bookings").update({ status }).eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success(`Booking ${status}`);
+    
+    // Auto-send email on status change
+    const booking = bookings.find((b: any) => b.id === id);
+    if (booking) {
+      const notesMatch = booking.notes?.match(/Email:\s*([^\s|]+)/);
+      const guestEmail = notesMatch?.[1];
+      const nameMatch = booking.notes?.match(/Contact:\s*([^|]+)/);
+      const guestName = nameMatch?.[1]?.trim() || "";
+      
+      if (guestEmail) {
+        const templateMap: Record<string, string> = {
+          confirmed: "booking_confirmation",
+          cancelled: "booking_cancelled",
+          completed: "booking_completed",
+        };
+        const templateType = templateMap[status];
+        if (templateType) {
+          const totalPrice = Number(booking.total_price || 0);
+          const deposit = Math.ceil(totalPrice * 0.5);
+          try {
+            await supabase.functions.invoke("send-email", {
+              body: {
+                templateType,
+                recipientEmail: guestEmail,
+                recipientName: guestName,
+                data: {
+                  packageTitle: booking.packages?.title || "Safari",
+                  travelDate: booking.travel_date || "TBD",
+                  guests: booking.guests,
+                  totalPrice: totalPrice.toLocaleString(),
+                  deposit: deposit.toLocaleString(),
+                  balance: (totalPrice - deposit).toLocaleString(),
+                  agentName: booking.agents?.name || "",
+                  agentRegion: booking.agents?.region || "",
+                  bookingId: booking.id,
+                  siteName: siteSettings?.site_name || "SafariHorizons",
+                  contactEmail: siteSettings?.contact_email || "",
+                },
+              },
+            });
+            toast.success(`Auto-email sent to ${guestEmail}`);
+          } catch (e) {
+            console.error("Auto-email failed:", e);
+          }
+        }
+      }
+    }
+    
     fetchAllData();
   };
 
@@ -179,7 +229,7 @@ const AdminDashboard = () => {
       {showBlogForm && <AdminBlogForm blog={editingBlog} onClose={closeForms} onSaved={onFormSaved} />}
       {showTestimonialForm && <AdminTestimonialForm testimonial={editingTestimonial} onClose={closeForms} onSaved={onFormSaved} />}
       {showAccommodationForm && <AdminAccommodationForm accommodation={editingAccommodation} countries={countries} onClose={closeForms} onSaved={onFormSaved} />}
-
+      {emailBooking && <AdminEmailDialog booking={emailBooking} siteSettings={siteSettings} onClose={() => setEmailBooking(null)} onSent={fetchAllData} />}
       {/* Sidebar */}
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground transform transition-transform lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
@@ -450,6 +500,9 @@ const AdminDashboard = () => {
                               <Button size="sm" variant="outline" className="text-xs h-7 rounded-full text-destructive" onClick={() => updateBookingStatus(b.id, "cancelled")}>Cancel</Button>
                             </>}
                             {b.status === "confirmed" && <Button size="sm" variant="outline" className="text-xs h-7 rounded-full" onClick={() => updateBookingStatus(b.id, "completed")}>Complete</Button>}
+                            <Button size="sm" variant="outline" className="text-xs h-7 rounded-full gap-1" onClick={() => setEmailBooking(b)}>
+                              <Mail size={12} /> Email
+                            </Button>
                           </div>
                         </td>
                       </tr>

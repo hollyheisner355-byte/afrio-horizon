@@ -98,6 +98,34 @@ const PackageDetail = () => {
       }
     }
 
+    // Auto-send booking received email
+    if (bookingForm.email && bookingData) {
+      try {
+        const { data: settings } = await supabase.from("site_settings").select("*").limit(1).maybeSingle();
+        await supabase.functions.invoke("send-email", {
+          body: {
+            templateType: "booking_pending",
+            recipientEmail: bookingForm.email,
+            recipientName: bookingForm.full_name,
+            data: {
+              packageTitle: pkg.title,
+              travelDate: bookingForm.travel_date || "TBD",
+              guests: bookingForm.guests,
+              totalPrice: totalPrice.toLocaleString(),
+              deposit: depositAmount.toLocaleString(),
+              agentName: assignedAgent?.name || "",
+              agentRegion: assignedAgent?.region || "",
+              bookingId: bookingData.id,
+              siteName: settings?.site_name || "SafariHorizons",
+              contactEmail: settings?.contact_email || "",
+            },
+          },
+        });
+      } catch (e) {
+        console.error("Auto-email failed:", e);
+      }
+    }
+
     toast.success(`Booking submitted! ${assignedAgent?.name || 'An agent'} will contact you to arrange your $${depositAmount.toLocaleString()} deposit.`);
     setShowBooking(false);
     navigate("/dashboard");
