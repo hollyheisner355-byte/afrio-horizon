@@ -229,7 +229,7 @@ const AdminDashboard = () => {
       {showBlogForm && <AdminBlogForm blog={editingBlog} onClose={closeForms} onSaved={onFormSaved} />}
       {showTestimonialForm && <AdminTestimonialForm testimonial={editingTestimonial} onClose={closeForms} onSaved={onFormSaved} />}
       {showAccommodationForm && <AdminAccommodationForm accommodation={editingAccommodation} countries={countries} onClose={closeForms} onSaved={onFormSaved} />}
-
+      {emailBooking && <AdminEmailDialog booking={emailBooking} siteSettings={siteSettings} onClose={() => setEmailBooking(null)} onSent={fetchAllData} />}
       {/* Sidebar */}
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground transform transition-transform lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
