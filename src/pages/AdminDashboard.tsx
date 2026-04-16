@@ -48,6 +48,7 @@ const AdminDashboard = () => {
   const [showTestimonialForm, setShowTestimonialForm] = useState(false);
   const [editingAccommodation, setEditingAccommodation] = useState<any>(undefined);
   const [showAccommodationForm, setShowAccommodationForm] = useState(false);
+  const [emailBooking, setEmailBooking] = useState<any>(null);
 
   // Settings form
   const [settingsForm, setSettingsForm] = useState<any>(null);
