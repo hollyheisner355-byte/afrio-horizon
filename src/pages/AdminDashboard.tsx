@@ -115,6 +115,54 @@ const AdminDashboard = () => {
     const { error } = await supabase.from("bookings").update({ status }).eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success(`Booking ${status}`);
+    
+    // Auto-send email on status change
+    const booking = bookings.find((b: any) => b.id === id);
+    if (booking) {
+      const notesMatch = booking.notes?.match(/Email:\s*([^\s|]+)/);
+      const guestEmail = notesMatch?.[1];
+      const nameMatch = booking.notes?.match(/Contact:\s*([^|]+)/);
+      const guestName = nameMatch?.[1]?.trim() || "";
+      
+      if (guestEmail) {
+        const templateMap: Record<string, string> = {
+          confirmed: "booking_confirmation",
+          cancelled: "booking_cancelled",
+          completed: "booking_completed",
+        };
+        const templateType = templateMap[status];
+        if (templateType) {
+          const totalPrice = Number(booking.total_price || 0);
+          const deposit = Math.ceil(totalPrice * 0.5);
+          try {
+            await supabase.functions.invoke("send-email", {
+              body: {
+                templateType,
+                recipientEmail: guestEmail,
+                recipientName: guestName,
+                data: {
+                  packageTitle: booking.packages?.title || "Safari",
+                  travelDate: booking.travel_date || "TBD",
+                  guests: booking.guests,
+                  totalPrice: totalPrice.toLocaleString(),
+                  deposit: deposit.toLocaleString(),
+                  balance: (totalPrice - deposit).toLocaleString(),
+                  agentName: booking.agents?.name || "",
+                  agentRegion: booking.agents?.region || "",
+                  bookingId: booking.id,
+                  siteName: siteSettings?.site_name || "SafariHorizons",
+                  contactEmail: siteSettings?.contact_email || "",
+                },
+              },
+            });
+            toast.success(`Auto-email sent to ${guestEmail}`);
+          } catch (e) {
+            console.error("Auto-email failed:", e);
+          }
+        }
+      }
+    }
+    
     fetchAllData();
   };
 
