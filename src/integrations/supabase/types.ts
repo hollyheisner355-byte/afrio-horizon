@@ -313,6 +313,62 @@ export type Database = {
         }
         Relationships: []
       }
+      email_notifications: {
+        Row: {
+          body_html: string
+          booking_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          recipient_email: string
+          recipient_name: string | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          template_type: string
+          updated_at: string
+        }
+        Insert: {
+          body_html: string
+          booking_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          recipient_email: string
+          recipient_name?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          template_type?: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          booking_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          recipient_email?: string
+          recipient_name?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_notifications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       packages: {
         Row: {
           country_id: string | null
