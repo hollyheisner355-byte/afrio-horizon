@@ -221,6 +221,8 @@ const AdminDashboard = () => {
     }
     setSendingTest(false);
   };
+
+  const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/");
   };
