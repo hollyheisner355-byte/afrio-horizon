@@ -53,6 +53,7 @@ const AdminDashboard = () => {
   // Settings form
   const [settingsForm, setSettingsForm] = useState<any>(null);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
 
   const navigate = useNavigate();
 
@@ -180,6 +181,45 @@ const AdminDashboard = () => {
     if (error) { toast.error(error.message); return; }
     toast.success("Settings saved!");
     fetchAllData();
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!settingsForm) return;
+    // Save first to ensure edge function reads the latest config from DB
+    setSendingTest(true);
+    try {
+      const { id, created_at, ...data } = settingsForm;
+      if (siteSettings?.id) {
+        await supabase.from("site_settings").update(data).eq("id", siteSettings.id);
+      } else {
+        await supabase.from("site_settings").insert(data);
+      }
+      const testRecipient = settingsForm.contact_email || user?.email;
+      if (!testRecipient) {
+        toast.error("Set a contact email first");
+        setSendingTest(false);
+        return;
+      }
+      const { data: result, error } = await supabase.functions.invoke("send-email", {
+        body: {
+          templateType: "test",
+          recipientEmail: testRecipient,
+          recipientName: "Admin",
+          data: { siteName: settingsForm.site_name },
+        },
+      });
+      if (error) {
+        toast.error("Test failed: " + error.message);
+      } else if (result?.success) {
+        toast.success(`Test sent to ${testRecipient} via ${result.method}`);
+      } else {
+        toast.error(result?.error || "Test email failed");
+      }
+      fetchAllData();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+    setSendingTest(false);
   };
 
   const handleSignOut = async () => {
@@ -692,22 +732,63 @@ const AdminDashboard = () => {
 
           {/* SETTINGS */}
           {activeTab === "settings" && settingsForm && (
-            <div className="bg-card border border-border rounded-xl p-6 max-w-xl">
-              <h3 className="font-display text-lg font-bold text-foreground mb-6">Site Settings</h3>
-              <div className="space-y-4">
-                <div><label className="text-sm font-medium text-foreground">Site Name</label><Input value={settingsForm.site_name || ""} onChange={e => setSettingsForm({...settingsForm, site_name: e.target.value})} className="mt-1" /></div>
-                <div><label className="text-sm font-medium text-foreground">Tagline</label><Input value={settingsForm.tagline || ""} onChange={e => setSettingsForm({...settingsForm, tagline: e.target.value})} className="mt-1" /></div>
-                <div><label className="text-sm font-medium text-foreground">Logo URL</label><Input value={settingsForm.logo_url || ""} onChange={e => setSettingsForm({...settingsForm, logo_url: e.target.value})} className="mt-1" /></div>
-                <div><label className="text-sm font-medium text-foreground">Contact Email</label><Input value={settingsForm.contact_email || ""} onChange={e => setSettingsForm({...settingsForm, contact_email: e.target.value})} className="mt-1" /></div>
-                <div><label className="text-sm font-medium text-foreground">Contact Phone</label><Input value={settingsForm.contact_phone || ""} onChange={e => setSettingsForm({...settingsForm, contact_phone: e.target.value})} className="mt-1" /></div>
-                <Button onClick={handleSaveSettings} disabled={savingSettings} className="rounded-full">{savingSettings ? "Saving..." : "Save Settings"}</Button>
+            <div className="space-y-6 max-w-3xl">
+              {/* Branding & Contact */}
+              <div className="bg-card border border-border rounded-xl p-6">
+                <h3 className="font-display text-lg font-bold text-foreground mb-1">Branding & Contact</h3>
+                <p className="text-xs text-muted-foreground mb-5">Public site identity & contact details</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><label className="text-sm font-medium">Site Name</label><Input value={settingsForm.site_name || ""} onChange={e => setSettingsForm({...settingsForm, site_name: e.target.value})} className="mt-1" /></div>
+                  <div><label className="text-sm font-medium">Tagline</label><Input value={settingsForm.tagline || ""} onChange={e => setSettingsForm({...settingsForm, tagline: e.target.value})} className="mt-1" /></div>
+                  <div className="md:col-span-2"><label className="text-sm font-medium">Logo URL</label><Input value={settingsForm.logo_url || ""} onChange={e => setSettingsForm({...settingsForm, logo_url: e.target.value})} className="mt-1" placeholder="https://..." /></div>
+                  <div><label className="text-sm font-medium">Contact Email</label><Input value={settingsForm.contact_email || ""} onChange={e => setSettingsForm({...settingsForm, contact_email: e.target.value})} className="mt-1" type="email" /></div>
+                  <div><label className="text-sm font-medium">Contact Phone</label><Input value={settingsForm.contact_phone || ""} onChange={e => setSettingsForm({...settingsForm, contact_phone: e.target.value})} className="mt-1" /></div>
+                </div>
+              </div>
+
+              {/* Head Office */}
+              <div className="bg-card border border-border rounded-xl p-6">
+                <h3 className="font-display text-lg font-bold text-foreground mb-1">Head Office</h3>
+                <p className="text-xs text-muted-foreground mb-5">Displayed on contact page and email footers</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2"><label className="text-sm font-medium">Office Address</label><Input value={settingsForm.office_address || ""} onChange={e => setSettingsForm({...settingsForm, office_address: e.target.value})} className="mt-1" placeholder="Head Office, Street name" /></div>
+                  <div><label className="text-sm font-medium">City</label><Input value={settingsForm.office_city || ""} onChange={e => setSettingsForm({...settingsForm, office_city: e.target.value})} className="mt-1" placeholder="Nairobi" /></div>
+                  <div><label className="text-sm font-medium">Country</label><Input value={settingsForm.office_country || ""} onChange={e => setSettingsForm({...settingsForm, office_country: e.target.value})} className="mt-1" placeholder="Kenya" /></div>
+                </div>
+              </div>
+
+              {/* SMTP Configuration */}
+              <div className="bg-card border border-border rounded-xl p-6">
+                <div className="flex items-start justify-between mb-1 gap-4">
+                  <div>
+                    <h3 className="font-display text-lg font-bold text-foreground">SMTP / Email Sending</h3>
+                    <p className="text-xs text-muted-foreground mt-1">Configure your own SMTP. Leave blank to use the built-in service.</p>
+                  </div>
+                  <Mail className="text-muted-foreground shrink-0" size={20} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+                  <div className="md:col-span-2"><label className="text-sm font-medium">SMTP Host</label><Input value={settingsForm.smtp_host || ""} onChange={e => setSettingsForm({...settingsForm, smtp_host: e.target.value})} className="mt-1" placeholder="smtp.gmail.com or mail.yourdomain.com" /></div>
+                  <div><label className="text-sm font-medium">Port</label><Input type="number" value={settingsForm.smtp_port || 587} onChange={e => setSettingsForm({...settingsForm, smtp_port: parseInt(e.target.value) || 587})} className="mt-1" /></div>
+                  <div className="flex items-end"><label className="flex items-center gap-2 text-sm font-medium pb-2 cursor-pointer"><input type="checkbox" checked={settingsForm.smtp_use_tls !== false} onChange={e => setSettingsForm({...settingsForm, smtp_use_tls: e.target.checked})} /> Use TLS (auto-fallback)</label></div>
+                  <div><label className="text-sm font-medium">Username</label><Input value={settingsForm.smtp_user || ""} onChange={e => setSettingsForm({...settingsForm, smtp_user: e.target.value})} className="mt-1" autoComplete="off" /></div>
+                  <div><label className="text-sm font-medium">Password</label><Input type="password" value={settingsForm.smtp_password || ""} onChange={e => setSettingsForm({...settingsForm, smtp_password: e.target.value})} className="mt-1" placeholder="••••••••" autoComplete="new-password" /></div>
+                  <div><label className="text-sm font-medium">From Email</label><Input value={settingsForm.smtp_from_email || ""} onChange={e => setSettingsForm({...settingsForm, smtp_from_email: e.target.value})} className="mt-1" type="email" placeholder="noreply@yourdomain.com" /></div>
+                  <div><label className="text-sm font-medium">From Name</label><Input value={settingsForm.smtp_from_name || ""} onChange={e => setSettingsForm({...settingsForm, smtp_from_name: e.target.value})} className="mt-1" placeholder="SafariHorizons" /></div>
+                </div>
+                <div className="mt-5 flex flex-wrap gap-3 items-center">
+                  <Button onClick={handleSaveSettings} disabled={savingSettings} className="rounded-full">{savingSettings ? "Saving..." : "Save All Settings"}</Button>
+                  <Button variant="outline" onClick={handleSendTestEmail} disabled={sendingTest} className="rounded-full gap-2">
+                    {sendingTest ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" /> Testing...</> : <><Send size={14} /> Send Test Email</>}
+                  </Button>
+                  <span className="text-xs text-muted-foreground">Saves first, then sends a test to your contact email</span>
+                </div>
               </div>
             </div>
           )}
           {activeTab === "settings" && !settingsForm && (
             <div className="bg-card border border-border rounded-xl p-6 max-w-xl">
               <p className="text-muted-foreground">No settings found. They will be created when you save.</p>
-              <Button className="mt-4 rounded-full" onClick={() => setSettingsForm({ site_name: "SafariHorizons", tagline: "Experience the Wild", contact_email: "", contact_phone: "", logo_url: "" })}>Initialize Settings</Button>
+              <Button className="mt-4 rounded-full" onClick={() => setSettingsForm({ site_name: "SafariHorizons", tagline: "", contact_email: "info@safarihorizons.com", contact_phone: "+254 702228218", logo_url: "", office_address: "Head Office", office_city: "Nairobi", office_country: "Kenya", smtp_port: 587, smtp_use_tls: true })}>Initialize Settings</Button>
             </div>
           )}
         </div>

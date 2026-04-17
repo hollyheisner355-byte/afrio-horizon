@@ -468,7 +468,17 @@ export type Database = {
           default_affiliate_commission: number | null
           id: string
           logo_url: string | null
+          office_address: string | null
+          office_city: string | null
+          office_country: string | null
           site_name: string
+          smtp_from_email: string | null
+          smtp_from_name: string | null
+          smtp_host: string | null
+          smtp_password: string | null
+          smtp_port: number | null
+          smtp_use_tls: boolean | null
+          smtp_user: string | null
           tagline: string | null
           updated_at: string
         }
@@ -478,7 +488,17 @@ export type Database = {
           default_affiliate_commission?: number | null
           id?: string
           logo_url?: string | null
+          office_address?: string | null
+          office_city?: string | null
+          office_country?: string | null
           site_name?: string
+          smtp_from_email?: string | null
+          smtp_from_name?: string | null
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number | null
+          smtp_use_tls?: boolean | null
+          smtp_user?: string | null
           tagline?: string | null
           updated_at?: string
         }
@@ -488,7 +508,17 @@ export type Database = {
           default_affiliate_commission?: number | null
           id?: string
           logo_url?: string | null
+          office_address?: string | null
+          office_city?: string | null
+          office_country?: string | null
           site_name?: string
+          smtp_from_email?: string | null
+          smtp_from_name?: string | null
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number | null
+          smtp_use_tls?: boolean | null
+          smtp_user?: string | null
           tagline?: string | null
           updated_at?: string
         }
@@ -550,6 +580,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_smtp_config: {
+        Args: never
+        Returns: {
+          smtp_from_email: string
+          smtp_from_name: string
+          smtp_host: string
+          smtp_password: string
+          smtp_port: number
+          smtp_use_tls: boolean
+          smtp_user: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
