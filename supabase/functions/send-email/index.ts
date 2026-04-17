@@ -8,7 +8,6 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -163,23 +162,6 @@ async function sendViaSMTP(cfg: any, to: string, subject: string, html: string):
   return { ok: false, error: lastError };
 }
 
-// ---------- Lovable Email fallback ----------
-async function sendViaLovable(to: string, subject: string, html: string, fromName: string): Promise<{ ok: boolean; error?: string }> {
-  if (!LOVABLE_API_KEY) return { ok: false, error: "LOVABLE_API_KEY not configured" };
-  try {
-    const r = await fetch("https://email-service.lovable.dev/v1/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
-      body: JSON.stringify({ to, subject, html, from: `${fromName} <noreply@lovable.dev>` }),
-    });
-    if (r.ok) return { ok: true };
-    const text = await r.text();
-    return { ok: false, error: `Lovable: ${text}` };
-  } catch (e: any) {
-    return { ok: false, error: `Lovable: ${e?.message || String(e)}` };
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -215,29 +197,25 @@ Deno.serve(async (req) => {
     const templateFn = templates[templateType] || templates.custom;
     const { subject, html } = templateFn(templateData);
 
-    // Decide send method: SMTP (admin-configured) → fallback to Lovable
-    let result: { ok: boolean; error?: string; mode?: string } = { ok: false, error: "No send method configured" };
-    let usedMethod = "none";
+    // Send via admin-configured SMTP
+    let result: { ok: boolean; error?: string; mode?: string };
+    let usedMethod = "SMTP";
 
-    const smtpReady = settings?.smtp_host && settings?.smtp_user && settings?.smtp_password && settings?.smtp_from_email;
-    if (smtpReady) {
+    const missing: string[] = [];
+    if (!settings?.smtp_host) missing.push("smtp_host");
+    if (!settings?.smtp_user) missing.push("smtp_user");
+    if (!settings?.smtp_password) missing.push("smtp_password");
+    if (!settings?.smtp_from_email) missing.push("smtp_from_email");
+
+    if (missing.length > 0) {
+      result = {
+        ok: false,
+        error: `SMTP not configured. Missing: ${missing.join(", ")}. Please configure SMTP in Admin → Settings.`,
+      };
+      usedMethod = "none";
+    } else {
       result = await sendViaSMTP(settings, recipientEmail, subject, html);
       usedMethod = result.mode || "SMTP";
-      if (!result.ok) {
-        console.warn("SMTP failed, trying Lovable fallback:", result.error);
-        const lovable = await sendViaLovable(recipientEmail, subject, html, templateData.siteName);
-        if (lovable.ok) {
-          result = { ok: true, mode: "Lovable-fallback" };
-          usedMethod = "Lovable-fallback";
-        } else {
-          result = { ok: false, error: `SMTP: ${result.error} | ${lovable.error}` };
-        }
-      }
-    } else {
-      // No SMTP configured — try Lovable
-      const lovable = await sendViaLovable(recipientEmail, subject, html, templateData.siteName);
-      result = lovable.ok ? { ok: true, mode: "Lovable" } : { ok: false, error: lovable.error };
-      usedMethod = "Lovable";
     }
 
     if (notificationId) {
