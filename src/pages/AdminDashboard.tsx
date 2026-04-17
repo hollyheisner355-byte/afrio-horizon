@@ -53,6 +53,7 @@ const AdminDashboard = () => {
   // Settings form
   const [settingsForm, setSettingsForm] = useState<any>(null);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
 
   const navigate = useNavigate();
 
@@ -182,7 +183,44 @@ const AdminDashboard = () => {
     fetchAllData();
   };
 
-  const handleSignOut = async () => {
+  const handleSendTestEmail = async () => {
+    if (!settingsForm) return;
+    // Save first to ensure edge function reads the latest config from DB
+    setSendingTest(true);
+    try {
+      const { id, created_at, ...data } = settingsForm;
+      if (siteSettings?.id) {
+        await supabase.from("site_settings").update(data).eq("id", siteSettings.id);
+      } else {
+        await supabase.from("site_settings").insert(data);
+      }
+      const testRecipient = settingsForm.contact_email || user?.email;
+      if (!testRecipient) {
+        toast.error("Set a contact email first");
+        setSendingTest(false);
+        return;
+      }
+      const { data: result, error } = await supabase.functions.invoke("send-email", {
+        body: {
+          templateType: "test",
+          recipientEmail: testRecipient,
+          recipientName: "Admin",
+          data: { siteName: settingsForm.site_name },
+        },
+      });
+      if (error) {
+        toast.error("Test failed: " + error.message);
+      } else if (result?.success) {
+        toast.success(`Test sent to ${testRecipient} via ${result.method}`);
+      } else {
+        toast.error(result?.error || "Test email failed");
+      }
+      fetchAllData();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+    setSendingTest(false);
+  };
     await supabase.auth.signOut();
     navigate("/");
   };
