@@ -8,7 +8,6 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -161,23 +160,6 @@ async function sendViaSMTP(cfg: any, to: string, subject: string, html: string):
     }
   }
   return { ok: false, error: lastError };
-}
-
-// ---------- Lovable Email fallback ----------
-async function sendViaLovable(to: string, subject: string, html: string, fromName: string): Promise<{ ok: boolean; error?: string }> {
-  if (!LOVABLE_API_KEY) return { ok: false, error: "LOVABLE_API_KEY not configured" };
-  try {
-    const r = await fetch("https://email-service.lovable.dev/v1/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
-      body: JSON.stringify({ to, subject, html, from: `${fromName} <noreply@lovable.dev>` }),
-    });
-    if (r.ok) return { ok: true };
-    const text = await r.text();
-    return { ok: false, error: `Lovable: ${text}` };
-  } catch (e: any) {
-    return { ok: false, error: `Lovable: ${e?.message || String(e)}` };
-  }
 }
 
 Deno.serve(async (req) => {
