@@ -68,6 +68,8 @@ const AdminEmailDialog = ({ booking, siteSettings, onClose, onSent }: EmailDialo
       const deposit = Math.ceil(totalPrice * 0.5);
       const balance = totalPrice - deposit;
 
+      const selectedMethods = paymentMethods.filter(m => selectedMethodIds.includes(m.id));
+
       const data = {
         packageTitle: booking.packages?.title || "Safari Package",
         travelDate: booking.travel_date || "TBD",
@@ -83,6 +85,12 @@ const AdminEmailDialog = ({ booking, siteSettings, onClose, onSent }: EmailDialo
         siteName: siteSettings?.site_name || "SafariHorizons",
         contactEmail: siteSettings?.contact_email || "",
         customMessage: additionalMessage || customBody,
+        paymentIntro: paymentIntro,
+        paymentMethods: selectedMethods.map(m => ({
+          name: m.name,
+          method_type: m.method_type,
+          instructions: m.instructions.replace(/\{bookingId\}/g, booking.id.slice(0, 8)),
+        })),
       };
 
       // Create notification record
