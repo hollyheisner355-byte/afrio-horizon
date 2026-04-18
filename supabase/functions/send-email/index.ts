@@ -30,6 +30,24 @@ const header = (title: string, gradient: string, data: any) => `
   <p style="color:rgba(255,255,255,0.85);font-size:13px;margin:0;">${data.siteName || "SafariHorizons"}</p>
 </td></tr>`;
 
+// Renders payment methods block (used in invoice + confirmation)
+const paymentBlock = (data: any) => {
+  const methods = Array.isArray(data.paymentMethods) ? data.paymentMethods : [];
+  if (methods.length === 0) return "";
+  const intro = data.paymentIntro || "Please use one of the payment methods below to complete your payment. Always include your booking reference.";
+  const methodsHtml = methods.map((m: any) => `
+    <div style="border:1px solid #e0e4e8;border-radius:10px;padding:14px 18px;margin:0 0 10px;background:#fff;">
+      <p style="margin:0 0 6px;color:#1a4d2e;font-weight:bold;font-size:14px;">${m.name}</p>
+      <pre style="margin:0;font-family:'Courier New',monospace;font-size:12px;color:#444;white-space:pre-wrap;background:#f8faf9;padding:10px;border-radius:6px;">${(m.instructions || "").replace(/</g, "&lt;")}</pre>
+    </div>`).join("");
+  return `
+    <div style="background:#fdf8f0;border-left:4px solid #c9822a;padding:16px 18px;border-radius:0 8px 8px 0;margin:0 0 16px;">
+      <p style="margin:0;color:#555;font-size:14px;line-height:1.6;">💳 <strong>Payment Information</strong></p>
+      <p style="margin:6px 0 0;color:#555;font-size:13px;line-height:1.6;">${intro}</p>
+    </div>
+    ${methodsHtml}`;
+};
+
 const templates: Record<string, (data: any) => { subject: string; html: string }> = {
   booking_confirmation: (data) => ({
     subject: `🎉 Booking Confirmed - ${data.packageTitle || "Your Safari"}`,
