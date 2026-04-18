@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { X, Send, Clock, Mail, FileText, CheckCircle, AlertTriangle } from "lucide-react";
+import { X, Send, Clock, Mail, FileText, CheckCircle, AlertTriangle, DollarSign } from "lucide-react";
 
 interface EmailDialogProps {
   booking: any;
@@ -38,6 +38,22 @@ const AdminEmailDialog = ({ booking, siteSettings, onClose, onSent }: EmailDialo
   const guestName = nameMatch?.[1]?.trim() || "";
 
   const [recipientEmail, setRecipientEmail] = useState(guestEmail);
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [selectedMethodIds, setSelectedMethodIds] = useState<string[]>([]);
+  const [paymentIntro, setPaymentIntro] = useState("Please use one of the payment methods below to settle your deposit. Always include your booking reference.");
+
+  useEffect(() => {
+    supabase.from("payment_methods").select("*").eq("is_active", true).order("display_order").then(({ data }) => {
+      const list = data || [];
+      setPaymentMethods(list);
+      // Pre-select all by default for invoices
+      setSelectedMethodIds(list.map((m: any) => m.id));
+    });
+  }, []);
+
+  const toggleMethod = (id: string) => {
+    setSelectedMethodIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
 
   const handleSend = async () => {
     if (!recipientEmail) {
