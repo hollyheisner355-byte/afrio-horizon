@@ -63,7 +63,8 @@ const templates: Record<string, (data: any) => { subject: string; html: string }
     <tr><td style="padding:8px 16px;border-top:1px solid #e8ece9;"><span style="color:#888;font-size:12px;">Deposit (50%)</span><br><strong style="color:#c9822a;">$${data.deposit || 0}</strong></td></tr>
     ${data.agentName ? `<tr><td style="padding:8px 16px;border-top:1px solid #e8ece9;"><span style="color:#888;font-size:12px;">Your Agent</span><br><strong>${data.agentName}</strong> (${data.agentRegion || ""})</td></tr>` : ""}
   </table>
-  ${data.customMessage ? `<div style="background:#f8faf9;border-left:4px solid #2d7a4a;padding:14px 18px;border-radius:0 8px 8px 0;margin:0 0 20px;color:#555;font-size:14px;">${data.customMessage}</div>` : ""}
+    ${data.customMessage ? `<div style="background:#f8faf9;border-left:4px solid #2d7a4a;padding:14px 18px;border-radius:0 8px 8px 0;margin:0 0 20px;color:#555;font-size:14px;">${data.customMessage}</div>` : ""}
+  ${paymentBlock(data)}
   <p style="color:#555;font-size:14px;line-height:1.6;">Your assigned agent will contact you to arrange the deposit payment.</p>
   <p style="color:#888;font-size:13px;margin:20px 0 0;">Happy travels! 🌍<br><strong>${data.siteName || "SafariHorizons"} Team</strong></p>
 </td></tr>`),
@@ -95,7 +96,8 @@ const templates: Record<string, (data: any) => { subject: string; html: string }
     <tr><td style="padding:12px 18px;color:#888;border-top:1px solid #e0e4e8;">Balance due before departure</td><td style="padding:12px 18px;text-align:right;border-top:1px solid #e0e4e8;">$${data.balance || 0}</td></tr>
   </table>
   ${data.customMessage ? `<div style="background:#f8faf9;border-left:4px solid #2d7a4a;padding:14px 18px;border-radius:0 8px 8px 0;margin:0 0 20px;color:#555;font-size:14px;">${data.customMessage}</div>` : ""}
-  <p style="color:#555;font-size:14px;">Please contact your agent to arrange payment.</p>
+  ${paymentBlock(data)}
+  <p style="color:#555;font-size:14px;">Please contact your agent to arrange payment if you have questions.</p>
   <p style="color:#888;font-size:13px;margin:20px 0 0;">Thank you! 🌍<br><strong>${data.siteName || "SafariHorizons"} Team</strong></p>
 </td></tr>`),
   }),
