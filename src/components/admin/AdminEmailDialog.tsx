@@ -244,6 +244,46 @@ const AdminEmailDialog = ({ booking, siteSettings, onClose, onSent }: EmailDialo
             </div>
           )}
 
+          {/* Payment methods (shown for invoice & confirmation) */}
+          {(templateType === "invoice" || templateType === "booking_confirmation") && (
+            <div>
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <DollarSign size={14} /> Payment Methods to Include
+              </Label>
+              {paymentMethods.length === 0 ? (
+                <p className="text-xs text-muted-foreground mt-2 p-3 bg-muted/40 rounded-lg">
+                  No payment methods configured. Add some in <strong>Admin → Payment Methods</strong> to include them in invoices.
+                </p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 gap-2 mt-2 max-h-44 overflow-y-auto">
+                    {paymentMethods.map(m => (
+                      <label key={m.id} className={`flex items-start gap-2 p-2.5 rounded-lg border cursor-pointer text-xs ${selectedMethodIds.includes(m.id) ? "border-primary bg-primary/5" : "border-border"}`}>
+                        <input
+                          type="checkbox"
+                          checked={selectedMethodIds.includes(m.id)}
+                          onChange={() => toggleMethod(m.id)}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground">{m.name}</p>
+                          <p className="text-muted-foreground text-[11px] capitalize">{m.method_type}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  <Textarea
+                    value={paymentIntro}
+                    onChange={e => setPaymentIntro(e.target.value)}
+                    rows={2}
+                    placeholder="Intro paragraph above payment instructions..."
+                    className="mt-2 text-xs"
+                  />
+                </>
+              )}
+            </div>
+          )}
+
           {/* Schedule */}
           <div>
             <Label className="text-sm font-medium flex items-center gap-2">
