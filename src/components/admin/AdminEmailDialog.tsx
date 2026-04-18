@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { X, Send, Clock, Mail, FileText, CheckCircle, AlertTriangle } from "lucide-react";
+import { X, Send, Clock, Mail, FileText, CheckCircle, AlertTriangle, DollarSign } from "lucide-react";
 
 interface EmailDialogProps {
   booking: any;
@@ -38,6 +38,22 @@ const AdminEmailDialog = ({ booking, siteSettings, onClose, onSent }: EmailDialo
   const guestName = nameMatch?.[1]?.trim() || "";
 
   const [recipientEmail, setRecipientEmail] = useState(guestEmail);
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [selectedMethodIds, setSelectedMethodIds] = useState<string[]>([]);
+  const [paymentIntro, setPaymentIntro] = useState("Please use one of the payment methods below to settle your deposit. Always include your booking reference.");
+
+  useEffect(() => {
+    supabase.from("payment_methods").select("*").eq("is_active", true).order("display_order").then(({ data }) => {
+      const list = data || [];
+      setPaymentMethods(list);
+      // Pre-select all by default for invoices
+      setSelectedMethodIds(list.map((m: any) => m.id));
+    });
+  }, []);
+
+  const toggleMethod = (id: string) => {
+    setSelectedMethodIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
 
   const handleSend = async () => {
     if (!recipientEmail) {
@@ -51,6 +67,8 @@ const AdminEmailDialog = ({ booking, siteSettings, onClose, onSent }: EmailDialo
       const totalPrice = Number(booking.total_price || 0);
       const deposit = Math.ceil(totalPrice * 0.5);
       const balance = totalPrice - deposit;
+
+      const selectedMethods = paymentMethods.filter(m => selectedMethodIds.includes(m.id));
 
       const data = {
         packageTitle: booking.packages?.title || "Safari Package",
@@ -67,6 +85,12 @@ const AdminEmailDialog = ({ booking, siteSettings, onClose, onSent }: EmailDialo
         siteName: siteSettings?.site_name || "SafariHorizons",
         contactEmail: siteSettings?.contact_email || "",
         customMessage: additionalMessage || customBody,
+        paymentIntro: paymentIntro,
+        paymentMethods: selectedMethods.map(m => ({
+          name: m.name,
+          method_type: m.method_type,
+          instructions: m.instructions.replace(/\{bookingId\}/g, booking.id.slice(0, 8)),
+        })),
       };
 
       // Create notification record
@@ -217,6 +241,46 @@ const AdminEmailDialog = ({ booking, siteSettings, onClose, onSent }: EmailDialo
                 rows={3}
                 className="mt-1"
               />
+            </div>
+          )}
+
+          {/* Payment methods (shown for invoice & confirmation) */}
+          {(templateType === "invoice" || templateType === "booking_confirmation") && (
+            <div>
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <DollarSign size={14} /> Payment Methods to Include
+              </Label>
+              {paymentMethods.length === 0 ? (
+                <p className="text-xs text-muted-foreground mt-2 p-3 bg-muted/40 rounded-lg">
+                  No payment methods configured. Add some in <strong>Admin → Payment Methods</strong> to include them in invoices.
+                </p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 gap-2 mt-2 max-h-44 overflow-y-auto">
+                    {paymentMethods.map(m => (
+                      <label key={m.id} className={`flex items-start gap-2 p-2.5 rounded-lg border cursor-pointer text-xs ${selectedMethodIds.includes(m.id) ? "border-primary bg-primary/5" : "border-border"}`}>
+                        <input
+                          type="checkbox"
+                          checked={selectedMethodIds.includes(m.id)}
+                          onChange={() => toggleMethod(m.id)}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground">{m.name}</p>
+                          <p className="text-muted-foreground text-[11px] capitalize">{m.method_type}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  <Textarea
+                    value={paymentIntro}
+                    onChange={e => setPaymentIntro(e.target.value)}
+                    rows={2}
+                    placeholder="Intro paragraph above payment instructions..."
+                    className="mt-2 text-xs"
+                  />
+                </>
+              )}
             </div>
           )}
 
