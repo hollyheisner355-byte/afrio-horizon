@@ -13,8 +13,9 @@ import AdminBlogForm from "@/components/admin/AdminBlogForm";
 import AdminTestimonialForm from "@/components/admin/AdminTestimonialForm";
 import AdminAccommodationForm from "@/components/admin/AdminAccommodationForm";
 import AdminEmailDialog from "@/components/admin/AdminEmailDialog";
+import AdminPaymentMethods from "@/components/admin/AdminPaymentMethods";
 
-type Tab = "overview" | "packages" | "countries" | "accommodations" | "agents" | "users" | "bookings" | "blogs" | "testimonials" | "affiliates" | "settings";
+type Tab = "overview" | "packages" | "countries" | "accommodations" | "agents" | "users" | "bookings" | "blogs" | "testimonials" | "affiliates" | "payments" | "settings";
 
 const AdminDashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -238,6 +239,7 @@ const AdminDashboard = () => {
     { key: "blogs", label: "Blogs", icon: MessageSquare },
     { key: "testimonials", label: "Testimonials", icon: Star },
     { key: "affiliates", label: "Affiliates", icon: Share2 },
+    { key: "payments", label: "Payment Methods", icon: DollarSign },
     { key: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -728,6 +730,11 @@ const AdminDashboard = () => {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* PAYMENT METHODS */}
+          {activeTab === "payments" && (
+            <div className="max-w-4xl"><AdminPaymentMethods /></div>
           )}
 
           {/* SETTINGS */}
